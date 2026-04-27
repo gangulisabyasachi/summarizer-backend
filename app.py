@@ -41,6 +41,55 @@ def clean_text(text):
 @app.get("/")
 def home(): return {"status": "Wisdom GPT Expert Engine Online"}
 
+@app.post("/expand-query")
+def expand_query(data: ChatRequest):
+    try:
+        api_token = os.getenv("HF_TOKEN")
+        client = InferenceClient(model="meta-llama/Llama-3.1-8B-Instruct", token=api_token)
+        
+        prompt = (
+            f"User Query: '{data.message}'\n\n"
+            "Expand this query into 5 key scholarly search terms/concepts. "
+            "Return only a comma-separated list of terms. Do not explain."
+        )
+
+        response = client.text_generation(
+            prompt,
+            max_new_tokens=100,
+            temperature=0.1
+        )
+        
+        return {"expanded": response.strip()}
+        
+    except Exception as e:
+        return {"expanded": data.message}
+
+@app.post("/semantic-search")
+def semantic_search(data: ChatRequest):
+    try:
+        api_token = os.getenv("HF_TOKEN")
+        client = InferenceClient(model="meta-llama/Llama-3.1-8B-Instruct", token=api_token)
+        
+        prompt = (
+            f"USER SEARCH INTENT: '{data.message}'\n\n"
+            "Evaluate these papers for DEEP CONCEPTUAL RELEVANCE. "
+            "Ignore papers that only mention keywords in passing. Only keep papers where the core topic matches the user intent.\n"
+            "Return format: ID|1-sentence relevance explanation (max 20 words)\n\n"
+            f"PAPERS TO ANALYZE:\n{data.papers_context}"
+        )
+
+        response = client.text_generation(
+            prompt,
+            max_new_tokens=800,
+            temperature=0.1
+        )
+        
+        return {"insights": response.strip()}
+        
+    except Exception as e:
+        print(f"❌ SEMANTIC ERROR: {str(e)}")
+        return {"insights": ""}
+
 @app.post("/chat")
 def chat(data: ChatRequest):
     try:

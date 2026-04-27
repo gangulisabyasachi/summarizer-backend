@@ -1,4 +1,3 @@
-
 import os
 import re
 import requests
@@ -17,6 +16,7 @@ def extract_text_from_pdf_url(pdf_url):
     with io.BytesIO(response.content) as f:
         reader = PdfReader(f)
         text = ""
+        # We process first 5 pages for a quick high-quality summary
         max_pages = min(5, len(reader.pages))
         for i in range(max_pages):
             text += reader.pages[i].extract_text() + "\n"
@@ -26,7 +26,7 @@ def simple_sentence_splitter(text):
     sentences = re.split(r'(?<=[.!?])\s+', text)
     return [s.strip() for s in sentences if s.strip()]
 
-def chunk_text(text, max_chars=1200):
+def chunk_text(text, max_chars=2000): # Increased chunk size for better context
     sentences = simple_sentence_splitter(text)
     chunks = []
     current_chunk = ""
@@ -41,16 +41,21 @@ def chunk_text(text, max_chars=1200):
 
 def summarize_single_chunk(chunk, api_token=None):
     token = api_token or os.getenv('HF_TOKEN')
-    client = InferenceClient(model="sshleifer/distilbart-cnn-12-6", token=token)
+    # Using Mistral for summarization via Chat API (Fastest)
+    client = InferenceClient(model="mistralai/Mistral-7B-Instruct-v0.2", token=token)
     
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            result = client.summarization(chunk)
-            return result if isinstance(result, str) else result.summary_text
-        except Exception as e:
-            if "504" in str(e) and attempt < max_retries - 1:
-                import time
-                time.sleep(2)
-                continue
-            raise e
+    messages = [
+        {"role": "system", "content": "You are a scholarly assistant. Provide a single concise paragraph summarizing the research findings and objective of this paper."},
+        {"role": "user", "content": chunk}
+    ]
+    
+    try:
+        response = client.chat_completion(
+            messages=messages,
+            max_tokens=150,
+            temperature=0.1
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"⚠️ Summarization failed: {e}")
+        return "Summary generation paused. Please try again."

@@ -3,5 +3,3 @@ uvicorn
 pydantic
 huggingface-hub
 python-dotenv
-torch
-transformers

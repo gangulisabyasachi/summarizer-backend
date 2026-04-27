@@ -41,8 +41,8 @@ def chunk_text(text, max_chars=2000): # Increased chunk size for better context
 
 def summarize_single_chunk(chunk, api_token=None):
     token = api_token or os.getenv('HF_TOKEN')
-    # Using Mistral for summarization via Chat API (Fastest)
-    client = InferenceClient(model="mistralai/Mistral-7B-Instruct-v0.2", token=token)
+    # Using Llama 3.1 for stability and high-quality scholarly summaries
+    client = InferenceClient(model="meta-llama/Llama-3.1-8B-Instruct", token=token)
     
     messages = [
         {"role": "system", "content": "You are a scholarly assistant. Provide a single concise paragraph summarizing the research findings and objective of this paper."},

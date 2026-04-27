@@ -45,7 +45,7 @@ def home(): return {"status": "Wisdom GPT Expert Engine Online"}
 def chat(data: ChatRequest):
     try:
         api_token = os.getenv("HF_TOKEN")
-        client = InferenceClient(model="mistralai/Mistral-7B-Instruct-v0.2", token=api_token)
+        client = InferenceClient(model="meta-llama/Llama-3.1-8B-Instruct", token=api_token)
         
         # --- THE EXPERT KNOWLEDGE BASE ---
         system_instr = (

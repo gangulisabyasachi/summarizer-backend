@@ -3,3 +3,5 @@ uvicorn
 pydantic
 huggingface-hub
 python-dotenv
+requests
+PyPDF2

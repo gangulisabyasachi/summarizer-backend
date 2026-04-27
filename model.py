@@ -54,14 +54,23 @@ def generate_summary(text, api_url=None, api_token=None, summary_params=None):
     
     for idx, chunk in enumerate(chunks):
         print(f"\n📤 Sending chunk {idx+1}/{len(chunks)} to Public API...")
-        try:
-            # Using default parameters for maximum compatibility
-            result = client.summarization(chunk)
-            summary_text = result if isinstance(result, str) else result.summary_text
-            summaries.append(summary_text)
-            print(f"✅ Chunk {idx+1} summarized.")
-        except Exception as e:
-            print(f"❌ Error on chunk {idx+1}: {e}")
-            raise RuntimeError(f"Public API summarization failed: {str(e)}")
+        
+        # Retry logic for 504 timeouts
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                result = client.summarization(chunk)
+                summary_text = result if isinstance(result, str) else result.summary_text
+                summaries.append(summary_text)
+                print(f"✅ Chunk {idx+1} summarized.")
+                break # Success!
+            except Exception as e:
+                if "504" in str(e) and attempt < max_retries - 1:
+                    print(f"⚠️ Timeout on attempt {attempt+1}. Retrying in 2s...")
+                    import time
+                    time.sleep(2)
+                    continue
+                print(f"❌ Error on chunk {idx+1}: {e}")
+                raise RuntimeError(f"Public API summarization failed: {str(e)}")
 
     return " ".join(summaries)

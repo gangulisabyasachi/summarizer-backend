@@ -12,8 +12,22 @@ from huggingface_hub import InferenceClient
 load_dotenv()
 
 app = FastAPI()
-origins = ["*"]
-app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+# SECURITY PROTOCOL: Strict CORS Enforcement
+# Restricted to official WISDOM domains to prevent cross-site request forgery
+ALLOWED_ORIGINS = [
+    "https://prithwishganguli.in",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001"
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
 
 class Message(BaseModel):
     role: str
@@ -53,13 +67,14 @@ def expand_query(data: ChatRequest):
             "Return only a comma-separated list of terms. Do not explain."
         )
 
-        response = client.text_generation(
-            prompt,
-            max_new_tokens=100,
+        messages = [{"role": "user", "content": prompt}]
+        response = client.chat_completion(
+            messages=messages,
+            max_tokens=100,
             temperature=0.1
         )
         
-        return {"expanded": response.strip()}
+        return {"expanded": response.choices[0].message.content.strip()}
         
     except Exception as e:
         return {"expanded": data.message}
@@ -78,13 +93,14 @@ def semantic_search(data: ChatRequest):
             f"PAPERS TO ANALYZE:\n{data.papers_context}"
         )
 
-        response = client.text_generation(
-            prompt,
-            max_new_tokens=800,
+        messages = [{"role": "user", "content": prompt}]
+        response = client.chat_completion(
+            messages=messages,
+            max_tokens=800,
             temperature=0.1
         )
         
-        return {"insights": response.strip()}
+        return {"insights": response.choices[0].message.content.strip()}
         
     except Exception as e:
         print(f"❌ SEMANTIC ERROR: {str(e)}")

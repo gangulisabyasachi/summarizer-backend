@@ -13,7 +13,15 @@ def extract_text_from_pdf_url(pdf_url):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
-    response = requests.get(pdf_url, headers=headers, timeout=15)
+    
+    # 🛡️ SECURITY: Add Vercel Bypass Secret if configured
+    bypass_secret = os.getenv('VERCEL_BYPASS_SECRET')
+    if bypass_secret:
+        headers["x-vercel-protection-bypass"] = bypass_secret
+        headers["x-vercel-set-bypass-cookie"] = "samesite-none; secure"
+        print("🔑 Using Vercel Bypass Secret for authentication.")
+
+    response = requests.get(pdf_url, headers=headers, timeout=20)
     response.raise_for_status()
     
     with io.BytesIO(response.content) as f:

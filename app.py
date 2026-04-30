@@ -160,21 +160,21 @@ def chat(data: ChatRequest):
 @app.post("/prepare")
 def prepare(data: PrepareRequest):
     try:
-        # Try PDF extraction first
-        text = ""
-        if data.pdf_url:
-            try:
-                text = model.extract_text_from_pdf_url(data.pdf_url)
-            except Exception as pdf_err:
-                print(f"⚠️ PDF Extraction failed, falling back to abstract: {str(pdf_err)}")
-                text = data.text or ""
-        else:
-            text = data.text or ""
-
-        if not text:
-            raise HTTPException(status_code=400, detail="No content available for analysis")
+        if not data.pdf_url:
+            raise HTTPException(status_code=400, detail="No PDF URL provided. Full paper analysis requires a valid manuscript link.")
+            
+        # Strict PDF Extraction: No fallbacks
+        try:
+            text = model.extract_text_from_pdf_url(data.pdf_url)
+            if not text or len(text.strip()) < 100:
+                raise Exception("The PDF appears to be empty or unreadable.")
+        except Exception as pdf_err:
+            # Report the specific error (e.g., 401 Unauthorized, 404 Not Found)
+            raise HTTPException(status_code=500, detail=f"PDF Download Failed: {str(pdf_err)}. Ensure your Vercel site is Public.")
             
         return {"chunks": model.chunk_text(text, max_chars=4000)[:1]}
+    except HTTPException as he:
+        raise he
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

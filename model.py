@@ -10,7 +10,10 @@ load_dotenv()
 
 def extract_text_from_pdf_url(pdf_url):
     print(f"📥 Downloading PDF: {pdf_url}")
-    response = requests.get(pdf_url, timeout=15)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+    response = requests.get(pdf_url, headers=headers, timeout=15)
     response.raise_for_status()
     
     with io.BytesIO(response.content) as f:

@@ -17,10 +17,10 @@ app = FastAPI()
 ALLOWED_ORIGINS = [
     "https://prithwishganguli.in",
     "https://wisdom-new-taupe.vercel.app",
+    "https://www.wisdomj.in",
+    "https://wisdomj.in",
     "http://localhost:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001"
+    "http://127.0.0.1:3000"
 ]
 app.add_middleware(
     CORSMiddleware,

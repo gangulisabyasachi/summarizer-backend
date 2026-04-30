@@ -1,9 +1,11 @@
 # app.py
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from typing import Optional, List
+from typing import Optional, List, Dict
+import time
+from collections import defaultdict
 import os
 import re
 import model
@@ -12,6 +14,19 @@ from huggingface_hub import InferenceClient
 load_dotenv()
 
 app = FastAPI()
+
+# 🛡️ SIMPLE IN-MEMORY RATE LIMITER
+# In a production environment with multiple workers, use Redis.
+request_history: Dict[str, List[float]] = defaultdict(list)
+
+def check_python_rate_limit(ip: str, limit: int, window: int) -> bool:
+    now = time.time()
+    # Filter out timestamps outside the window
+    request_history[ip] = [t for t in request_history[ip] if now - t < window]
+    if len(request_history[ip]) >= limit:
+        return False
+    request_history[ip].append(now)
+    return True
 # SECURITY PROTOCOL: Strict CORS Enforcement
 # Restricted to official WISDOM domains to prevent cross-site request forgery
 ALLOWED_ORIGINS = [
@@ -57,7 +72,11 @@ def clean_text(text):
 def home(): return {"status": "Wisdom GPT Expert Engine Online"}
 
 @app.post("/expand-query")
-def expand_query(data: ChatRequest):
+def expand_query(data: ChatRequest, request: Request):
+    ip = request.client.host
+    if not check_python_rate_limit(ip, limit=50, window=3600):
+        raise HTTPException(status_code=429, detail="Too many requests. Please try again in an hour.")
+    
     try:
         api_token = os.getenv("HF_TOKEN")
         client = InferenceClient(model="meta-llama/Llama-3.1-8B-Instruct", token=api_token)
@@ -81,7 +100,11 @@ def expand_query(data: ChatRequest):
         return {"expanded": data.message}
 
 @app.post("/semantic-search")
-def semantic_search(data: ChatRequest):
+def semantic_search(data: ChatRequest, request: Request):
+    ip = request.client.host
+    if not check_python_rate_limit(ip, limit=30, window=3600):
+        raise HTTPException(status_code=429, detail="Too many requests. Please try again in an hour.")
+
     try:
         api_token = os.getenv("HF_TOKEN")
         client = InferenceClient(model="meta-llama/Llama-3.1-8B-Instruct", token=api_token)
